@@ -44,7 +44,10 @@ jobs:
             sed -i "1i apply plugin: 'kotlin-android'" android/app/build.gradle
           fi
           if ! grep -q "androidx.biometric" android/app/build.gradle; then
-            sed -i '/dependencies {/a\    implementation "androidx.biometric:biometric:1.2.0-alpha05"\n    implementation "androidx.core:core-ktx:1.13.1"' android/app/build.gradle
+            sed -i '/dependencies {/a\    implementation "androidx.biometric:biometric:1.2.0-alpha05"' android/app/build.gradle
+          fi
+          if ! grep -q "core-ktx" android/app/build.gradle; then
+            sed -i '/dependencies {/a\    implementation "androidx.core:core-ktx:1.13.1"' android/app/build.gradle
           fi
           if ! grep -q "kotlin-gradle-plugin" android/build.gradle; then
             sed -i "/classpath 'com.android.tools.build:gradle/a\\        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24'" android/build.gradle
