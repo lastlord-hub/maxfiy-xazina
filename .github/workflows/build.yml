@@ -1,1 +1,66 @@
+name: Build Android APK
 
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Kodni yuklab olish
+        uses: actions/checkout@v4
+
+      - name: Node.js o'rnatish
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: JDK 17 o'rnatish
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: NPM paketlarini o'rnatish
+        run: npm install
+
+      - name: Capacitor Android platformasini qo'shish (agar mavjud bo'lmasa)
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+
+      - name: Native kodimizni Capacitor loyihasiga ko'chirish
+        run: |
+          mkdir -p android/app/src/main/java/com/maxfiyxazina/app
+          cp android-native/app/src/main/java/com/maxfiyxazina/app/*.kt android/app/src/main/java/com/maxfiyxazina/app/
+          cp android-native/app/src/main/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          mkdir -p android/app/src/main/res/xml
+          cp -f android-native/app/src/main/res/xml/*.xml android/app/src/main/res/xml/
+
+      - name: build.gradle ichiga biometric kutubxonasini qo'shish
+        run: |
+          if ! grep -q "androidx.biometric" android/app/build.gradle; then
+            sed -i '/dependencies {/a\    implementation "androidx.biometric:biometric:1.2.0-alpha05"' android/app/build.gradle
+          fi
+
+      - name: Capacitor'ni sinxronlash
+        run: npx cap sync android
+
+      - name: Gradle'ga ishga tushirish ruxsatini berish
+        run: chmod +x android/gradlew
+
+      - name: Debug APK yasash
+        run: |
+          cd android
+          ./gradlew assembleDebug --stacktrace
+
+      - name: APK faylini saqlash (Artifact sifatida)
+        uses: actions/upload-artifact@v4
+        with:
+          name: maxfiy-xazina-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 90
