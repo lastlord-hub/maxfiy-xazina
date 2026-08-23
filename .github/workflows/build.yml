@@ -14,3 +14,15 @@ jobs:
           java-version: '17'
       - run: npm install
       - run: npx cap add android
+      - name: Native kodni kochirish
+        run: |
+          mkdir -p android/app/src/main/java/com/maxfiyxazina/app
+          cp android-native/app/src/main/java/com/maxfiyxazina/app/*.kt android/app/src/main/java/com/maxfiyxazina/app/
+          cp android-native/app/src/main/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          mkdir -p android/app/src/main/res/xml
+          cp -f android-native/app/src/main/res/xml/*.xml android/app/src/main/res/xml/
+      - name: Biometric kutubxonasini qoshish
+        run: |
+          if ! grep -q "androidx.biometric" android/app/build.gradle; then
+            sed -i '/dependencies {/a\    implementation "androidx.biometric:biometric:1.2.0-alpha05"' android/app/build.gradle
+          fi
