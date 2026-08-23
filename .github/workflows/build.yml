@@ -52,14 +52,18 @@ jobs:
           if ! grep -q "kotlin-gradle-plugin" android/build.gradle; then
             sed -i "/classpath 'com.android.tools.build:gradle/a\\        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24'" android/build.gradle
           fi
-          echo "----- app/build.gradle -----"
-          cat android/app/build.gradle
-          echo "----- build.gradle -----"
-          cat android/build.gradle
+          echo "----- app/build.gradle (raqamlangan) -----"
+          cat -n android/app/build.gradle
+          echo "----- build.gradle (raqamlangan) -----"
+          cat -n android/build.gradle
 
       - name: minSdkVersion ni 26 ga oshirish (Autofill uchun shart)
         run: |
-          sed -i 's/minSdkVersion [0-9]*/minSdkVersion 26/' android/variables.gradle || true
+          echo "Ozgartirishdan oldin:"
+          cat android/variables.gradle
+          sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 26/' android/variables.gradle
+          sed -i 's/minSdkVersion [0-9]*/minSdkVersion 26/' android/variables.gradle
+          echo "Ozgartirishdan keyin:"
           cat android/variables.gradle
 
       - name: Capacitor sync
