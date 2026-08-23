@@ -61,15 +61,7 @@ jobs:
         run: |
           echo "Ozgartirishdan oldin:"
           cat android/variables.gradle
-          python3 -c "
-import re
-with open('android/variables.gradle', 'r') as f:
-    content = f.read()
-# minSdkVersion so'zidan keyin keladigan har qanday sonni (= bilan yoki = siz) 26 ga almashtiradi
-content = re.sub(r'minSdkVersion(\s*=?\s*)\d+', r'minSdkVersion\g<1>26', content)
-with open('android/variables.gradle', 'w') as f:
-    f.write(content)
-"
+          python3 -c "import re; content = open('android/variables.gradle').read(); content = re.sub(r'minSdkVersion(\s*=?\s*)\d+', r'minSdkVersion\g<1>26', content); open('android/variables.gradle', 'w').write(content)"
           echo "Ozgartirishdan keyin:"
           cat android/variables.gradle
 
