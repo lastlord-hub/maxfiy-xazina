@@ -2,8 +2,10 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main, master ]
-  workflow_dispatch:
+    branches:
+      - main
+      - master
+  workflow_dispatch: {}
 
 jobs:
   build:
@@ -27,7 +29,7 @@ jobs:
       - name: NPM paketlarini o'rnatish
         run: npm install
 
-      - name: Capacitor Android platformasini qo'shish (agar mavjud bo'lmasa)
+      - name: Capacitor Android platformasini qo'shish
         run: |
           if [ ! -d "android" ]; then
             npx cap add android
@@ -58,7 +60,7 @@ jobs:
           cd android
           ./gradlew assembleDebug --stacktrace
 
-      - name: APK faylini saqlash (Artifact sifatida)
+      - name: APK faylini saqlash
         uses: actions/upload-artifact@v4
         with:
           name: maxfiy-xazina-apk
