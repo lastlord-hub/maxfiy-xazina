@@ -26,3 +26,17 @@ jobs:
           if ! grep -q "androidx.biometric" android/app/build.gradle; then
             sed -i '/dependencies {/a\    implementation "androidx.biometric:biometric:1.2.0-alpha05"' android/app/build.gradle
           fi
+      - name: Capacitor sync
+        run: npx cap sync android
+      - name: Gradle ruxsat
+        run: chmod +x android/gradlew
+      - name: APK yasash
+        run: |
+          cd android
+          ./gradlew assembleDebug --stacktrace
+      - name: APK saqlash
+        uses: actions/upload-artifact@v4
+        with:
+          name: maxfiy-xazina-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 90
