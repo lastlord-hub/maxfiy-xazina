@@ -1,0 +1,19 @@
+// Bu fayl 'npx cap sync android' buyrug'i orqali avtomatik yangilanadi.
+// GitHub Actions workflow ichida bu qadam avtomatik bajariladi.
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    namespace "com.getcapacitor.myapp"
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+    }
+}
+
+dependencies {
+}
+
+if (hasProperty('postBuildExtras')) {
+    postBuildExtras()
+}

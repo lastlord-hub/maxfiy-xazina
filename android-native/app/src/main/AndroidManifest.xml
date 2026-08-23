@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Biometrika (barmoq izi) uchun ruxsat -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+
+    <!-- Internetga umuman ehtiyoj yo'q - lekin Capacitor runtime uchun
+         ba'zan kerak bo'ladi (WebView ba'zi ichki resurslar uchun).
+         Ilovaning o'zi hech qanday tarmoq so'rovi yubormaydi. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        tools:targetApi="31">
+
+        <!--
+          android:allowBackup="false" — MUHIM XAVFSIZLIK QARORI:
+          Bu Android'ning avtomatik zaxira tizimi (Google Drive backup)
+          orqali ilova ma'lumotlarini (shifrlangan bo'lsa ham) bulutga
+          yubormasligini kafolatlaydi. Zaxira faqat foydalanuvchi o'zi
+          "Shifrlangan zaxira nusxa yaratish" tugmasi orqali amalga oshiradi.
+        -->
+
+        <activity
+            android:exported="true"
+            android:name="com.maxfiyxazina.app.MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- AUTOFILL SERVICE: Android tizimiga bu ilova parol taklif qila
+             olishini bildiradi. Foydalanuvchi buni Sozlamalar > Til va kiritish >
+             Autofill xizmati bo'limida qo'lda yoqishi kerak (xavfsizlik uchun
+             Android bunday xizmatlarni avtomatik yoqishga ruxsat bermaydi). -->
+        <service
+            android:name="com.maxfiyxazina.app.VaultAutofillService"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_AUTOFILL_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.autofill.AutofillService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.autofill"
+                android:resource="@xml/autofill_service" />
+        </service>
+
+    </application>
+</manifest>

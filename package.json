@@ -1,0 +1,17 @@
+{
+  "name": "maxfiy-xazina",
+  "version": "1.0.0",
+  "description": "Offline parol menejeri - AES-256 shifrlash bilan",
+  "scripts": {
+    "sync": "npx cap sync android",
+    "build-web": "echo 'Web assets already in www/'"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/clipboard": "^6.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}

@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Maxfiy Xazina</title>
+<meta name="theme-color" content="#0a0d12">
+<style>
+  :root{
+    --bg-deep:#0a0d12;
+    --bg-panel:#12161f;
+    --bg-panel-2:#191f2b;
+    --line:#242c3a;
+    --line-soft:#1b212c;
+    --text-hi:#eef1f6;
+    --text-mid:#9aa5b8;
+    --text-low:#5b6577;
+    --emerald:#2fd18f;
+    --emerald-dim:#1f9d6c;
+    --amber:#e0a951;
+    --red:#e0605a;
+    --mono: 'SF Mono', 'Roboto Mono', 'Consolas', monospace;
+    --sans: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; height:100%; background:var(--bg-deep); color:var(--text-hi); font-family:var(--sans); overflow-x:hidden;}
+  #app{min-height:100vh; display:flex; flex-direction:column; padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);}
+  .grain{position:fixed; inset:0; pointer-events:none; z-index:0; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 14px);}
+
+  /* ---------- LOCK SCREEN ---------- */
+  #lock-screen{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px 24px; position:relative; z-index:1; min-height:100vh;}
+  .dial{width:88px; height:88px; border-radius:50%; border:2px solid var(--line); display:flex; align-items:center; justify-content:center; margin-bottom:28px; position:relative; background: radial-gradient(circle at 30% 30%, var(--bg-panel-2), var(--bg-panel));}
+  .dial::before{content:''; position:absolute; inset:8px; border-radius:50%; border:1px solid var(--line-soft);}
+  .dial svg{width:34px; height:34px; stroke:var(--emerald); position:relative; z-index:1;}
+  .dial.shake{animation:shake 0.4s;}
+  @keyframes shake{10%,90%{transform:translateX(-2px)} 20%,80%{transform:translateX(4px)} 30%,50%,70%{transform:translateX(-8px)} 40%,60%{transform:translateX(8px)}}
+  .brand{font-size:20px; font-weight:600; letter-spacing:0.02em; margin-bottom:4px; color:var(--text-hi);}
+  .brand-sub{font-size:13px; color:var(--text-low); margin-bottom:36px; text-align:center; max-width:280px; line-height:1.5;}
+  .field-wrap{width:100%; max-width:340px;}
+  .field-label{font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-low); margin-bottom:8px; display:block;}
+  .pass-input-row{display:flex; align-items:center; gap:8px; background:var(--bg-panel); border:1px solid var(--line); border-radius:10px; padding:4px 4px 4px 16px;}
+  .pass-input-row:focus-within{border-color:var(--emerald-dim);}
+  input[type="password"], input[type="text"]{flex:1; background:transparent; border:none; outline:none; color:var(--text-hi); font-size:16px; font-family:var(--mono); letter-spacing:0.05em; padding:14px 0; min-width:0;}
+  .icon-btn{background:transparent; border:none; color:var(--text-low); padding:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; border-radius:8px;}
+  .icon-btn:active{background:var(--bg-panel-2);}
+  .icon-btn svg{width:18px; height:18px; stroke:currentColor;}
+  .btn-primary{width:100%; margin-top:16px; background:var(--emerald); color:#06110c; border:none; border-radius:10px; padding:15px; font-size:15px; font-weight:600; cursor:pointer; font-family:var(--sans);}
+  .btn-primary:active{background:var(--emerald-dim);}
+  .btn-primary:disabled{background:var(--line); color:var(--text-low);}
+  .btn-secondary{width:100%; margin-top:10px; background:transparent; border:1px solid var(--line); color:var(--text-mid); border-radius:10px; padding:14px; font-size:14px; font-weight:600; cursor:pointer; font-family:var(--sans); display:flex; align-items:center; justify-content:center; gap:8px;}
+  .btn-secondary svg{width:17px; height:17px; stroke:currentColor;}
+  .hint-line{font-size:12.5px; color:var(--text-low); margin-top:14px; text-align:center; line-height:1.5; max-width:300px;}
+  .error-line{font-size:13px; color:var(--red); margin-top:14px; text-align:center; min-height:18px;}
+  .strength-bar{display:flex; gap:4px; margin-top:10px;}
+  .strength-seg{height:3px; flex:1; border-radius:2px; background:var(--line);}
+  .strength-seg.on-weak{background:var(--red);}
+  .strength-seg.on-mid{background:var(--amber);}
+  .strength-seg.on-strong{background:var(--emerald);}
+  #confirm-wrap{display:none; margin-top:14px;}
+
+  /* ---------- MAIN VAULT SCREEN ---------- */
+  #vault-screen{display:none; flex:1; flex-direction:column; position:relative; z-index:1; min-height:100vh;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; padding:20px 20px 14px 20px;}
+  .topbar h1{font-size:22px; margin:0; font-weight:700; letter-spacing:-0.01em;}
+  .topbar .count{font-size:12.5px; color:var(--text-low); margin-top:2px;}
+  .topbar-actions{display:flex; gap:8px;}
+  .icon-sq-btn{background:var(--bg-panel); border:1px solid var(--line); color:var(--text-mid); width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center;}
+  .icon-sq-btn svg{width:18px; height:18px; stroke:currentColor;}
+  .search-wrap{padding:0 20px 14px 20px;}
+  .search-row{display:flex; align-items:center; gap:10px; background:var(--bg-panel); border:1px solid var(--line-soft); border-radius:10px; padding:11px 14px;}
+  .search-row svg{width:16px; height:16px; stroke:var(--text-low); flex-shrink:0;}
+  .search-row input{background:transparent; border:none; outline:none; color:var(--text-hi); font-size:14.5px; flex:1; font-family:var(--sans);}
+  #entry-list{flex:1; overflow-y:auto; padding:0 20px 120px 20px;}
+  .empty-state{display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; text-align:center; color:var(--text-low);}
+  .empty-state svg{width:40px; height:40px; stroke:var(--line); margin-bottom:16px;}
+  .empty-state p{font-size:14px; margin:0; line-height:1.6; max-width:240px;}
+  .entry-card{background:var(--bg-panel); border:1px solid var(--line-soft); border-radius:12px; padding:14px 16px; margin-bottom:10px; display:flex; align-items:center; gap:12px; cursor:pointer;}
+  .entry-card:active{background:var(--bg-panel-2);}
+  .entry-avatar{width:40px; height:40px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--emerald-dim), #0e6b4a); color:#06150e; font-weight:700; font-size:15px; font-family:var(--sans);}
+  .entry-info{flex:1; min-width:0;}
+  .entry-name{font-size:15px; font-weight:600; color:var(--text-hi); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .entry-login{font-size:13px; color:var(--text-low); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px;}
+  .entry-chevron{width:16px; height:16px; stroke:var(--text-low); flex-shrink:0;}
+  .fab{position:fixed; right:20px; bottom:28px; z-index:5; width:58px; height:58px; border-radius:50%; background:var(--emerald); border:none; color:#06110c; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(47,209,143,0.3);}
+  .fab svg{width:26px; height:26px; stroke:currentColor; stroke-width:2.2;}
+  .fab:active{background:var(--emerald-dim);}
+
+  /* ---------- BOTTOM SHEET ---------- */
+  .sheet-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:10; display:none; align-items:flex-end; justify-content:center;}
+  .sheet-overlay.open{display:flex;}
+  .sheet{background:var(--bg-panel); width:100%; max-width:480px; border-radius:20px 20px 0 0; padding:10px 20px 28px 20px; max-height:88vh; overflow-y:auto; animation:slideUp 0.22s ease-out;}
+  @keyframes slideUp{from{transform:translateY(30px); opacity:0.5;} to{transform:translateY(0); opacity:1;}}
+  .sheet-handle{width:36px; height:4px; background:var(--line); border-radius:2px; margin:0 auto 18px auto;}
+  .sheet-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;}
+  .sheet-header h2{font-size:18px; margin:0; font-weight:700;}
+  .sheet-close{background:transparent; border:none; color:var(--text-low); padding:6px;}
+  .sheet-close svg{width:22px; height:22px; stroke:currentColor;}
+  .form-group{margin-bottom:16px;}
+  .form-group label{font-size:11px; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-low); margin-bottom:7px; display:block;}
+  .form-input-row{display:flex; align-items:center; background:var(--bg-panel-2); border:1px solid var(--line); border-radius:10px; padding:2px 2px 2px 14px;}
+  .form-input-row input{flex:1; background:transparent; border:none; outline:none; color:var(--text-hi); font-size:15px; padding:13px 0; font-family:var(--sans); min-width:0;}
+  .form-input-row.mono input{font-family:var(--mono);}
+  .gen-row{display:flex; gap:8px; margin-top:10px;}
+  .chip-btn{flex:1; background:var(--bg-panel-2); border:1px solid var(--line); color:var(--text-mid); padding:10px; border-radius:9px; font-size:12.5px; font-family:var(--sans); display:flex; align-items:center; justify-content:center; gap:6px;}
+  .chip-btn svg{width:14px; height:14px; stroke:currentColor;}
+  .chip-btn:active{background:var(--line);}
+  .btn-row{display:flex; gap:10px; margin-top:22px;}
+  .btn-danger{background:transparent; border:1px solid rgba(224,96,90,0.4); color:var(--red); border-radius:10px; padding:14px; font-size:14.5px; font-weight:600; flex:1; font-family:var(--sans);}
+  .btn-save{background:var(--emerald); border:none; color:#06110c; border-radius:10px; padding:14px; font-size:14.5px; font-weight:700; flex:2; font-family:var(--sans);}
+  .btn-save:active{background:var(--emerald-dim);}
+  .toast{position:fixed; top:20px; left:50%; transform:translateX(-50%) translateY(-60px); background:var(--bg-panel-2); border:1px solid var(--line); color:var(--text-hi); padding:12px 20px; border-radius:10px; font-size:13.5px; z-index:20; transition:transform 0.25s ease; display:flex; align-items:center; gap:8px; box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+  .toast.show{transform:translateX(-50%) translateY(0);}
+  .toast svg{width:15px; height:15px; stroke:var(--emerald); flex-shrink:0;}
+  .footer-note{text-align:center; font-size:11.5px; color:var(--text-low); padding:16px 24px 4px 24px; line-height:1.6;}
+  .settings-row{display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--line-soft);}
+  .settings-row:last-child{border-bottom:none;}
+  .settings-row-label{font-size:14.5px; color:var(--text-hi); font-weight:500;}
+  .settings-row-sub{font-size:12px; color:var(--text-low); margin-top:2px;}
+  .toggle{width:46px; height:26px; border-radius:14px; background:var(--line); position:relative; flex-shrink:0; border:none; padding:0;}
+  .toggle.on{background:var(--emerald);}
+  .toggle-knob{width:20px; height:20px; border-radius:50%; background:#fff; position:absolute; top:3px; left:3px; transition:left 0.18s ease;}
+  .toggle.on .toggle-knob{left:23px;}
+  ::-webkit-scrollbar{display:none;}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div id="app">
+
+  <!-- LOCK / SETUP SCREEN -->
+  <div id="lock-screen">
+    <div class="dial" id="dial-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+    </div>
+    <div class="brand" id="screen-title">Maxfiy Xazina</div>
+    <div class="brand-sub" id="screen-sub">Barcha parollaringiz shu qurilmada, shifrlangan holda saqlanadi.</div>
+
+    <div class="field-wrap">
+      <label class="field-label" id="field-label-1">Bosh parol</label>
+      <div class="pass-input-row">
+        <input type="password" id="master-input" placeholder="••••••••" autocomplete="off" inputmode="text">
+        <button class="icon-btn" id="toggle-master-vis" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        </button>
+      </div>
+      <div class="strength-bar" id="strength-bar" style="display:none;">
+        <div class="strength-seg"></div><div class="strength-seg"></div><div class="strength-seg"></div><div class="strength-seg"></div>
+      </div>
+      <div id="confirm-wrap">
+        <label class="field-label" style="margin-top:14px;">Bosh parolni tasdiqlang</label>
+        <div class="pass-input-row"><input type="password" id="master-confirm-input" placeholder="••••••••" autocomplete="off"></div>
+      </div>
+
+      <button class="btn-primary" id="unlock-btn">Ochish</button>
+      <button class="btn-secondary" id="biometric-btn" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11c0-1 .8-2 2-2s2 1 2 2c0 4-2 6-2 6"></path><path d="M8 12a4 4 0 0 1 8 0"></path><path d="M6 12a6 6 0 0 1 12 0c0 3-1 5-1 5"></path><path d="M4 12a8 8 0 0 1 15-4"></path></svg>
+        Barmoq izi bilan ochish
+      </button>
+      <div class="error-line" id="error-line"></div>
+      <div class="hint-line" id="hint-line"></div>
+    </div>
+  </div>
+
+  <!-- MAIN VAULT SCREEN -->
+  <div id="vault-screen">
+    <div class="topbar">
+      <div>
+        <h1>Xazina</h1>
+        <div class="count" id="entry-count">0 ta yozuv</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-sq-btn" id="settings-btn" title="Sozlamalar">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+        <button class="icon-sq-btn" id="lock-now-btn" title="Qulflash">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="search-wrap">
+      <div class="search-row">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+        <input type="text" id="search-input" placeholder="Qidirish...">
+      </div>
+    </div>
+
+    <div id="entry-list"></div>
+
+    <button class="fab" id="add-fab">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    </button>
+  </div>
+
+  <div class="footer-note">🔒 Barcha maʼlumot faqat shu qurilmada, AES-256 bilan shifrlangan holda saqlanadi. Hech narsa internetga yuborilmaydi.</div>
+</div>
+
+<!-- ADD / EDIT SHEET -->
+<div class="sheet-overlay" id="entry-sheet-overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2 id="sheet-title">Yangi yozuv</h2>
+      <button class="sheet-close" id="sheet-close-btn"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    </div>
+    <div class="form-group">
+      <label>Nomi</label>
+      <div class="form-input-row"><input type="text" id="entry-name" placeholder="Masalan: Instagram"></div>
+    </div>
+    <div class="form-group">
+      <label>Login / Email</label>
+      <div class="form-input-row"><input type="text" id="entry-login" placeholder="username@mail.com" autocapitalize="off" autocorrect="off"></div>
+    </div>
+    <div class="form-group">
+      <label>Parol</label>
+      <div class="form-input-row mono">
+        <input type="text" id="entry-password" placeholder="Parol" autocapitalize="off" autocorrect="off">
+        <button class="icon-btn" id="toggle-entry-pass-vis" type="button"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+      </div>
+      <div class="gen-row">
+        <button class="chip-btn" id="gen-pass-btn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>Kuchli parol</button>
+        <button class="chip-btn" id="copy-pass-btn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>Nusxalash</button>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-danger" id="delete-entry-btn" style="display:none;">O'chirish</button>
+      <button class="btn-save" id="save-entry-btn">Saqlash</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS SHEET -->
+<div class="sheet-overlay" id="settings-sheet-overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2>Sozlamalar</h2>
+      <button class="sheet-close" id="settings-close-btn"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    </div>
+
+    <div class="settings-row">
+      <div>
+        <div class="settings-row-label">Barmoq izi bilan ochish</div>
+        <div class="settings-row-sub">Bosh parol o'rniga biometrika</div>
+      </div>
+      <button class="toggle" id="biometric-toggle"><div class="toggle-knob"></div></button>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-row-label">Avtomatik qulflash</div>
+        <div class="settings-row-sub">30 soniya faolsizlikdan keyin</div>
+      </div>
+      <button class="toggle on" id="autolock-toggle"><div class="toggle-knob"></div></button>
+    </div>
+
+    <div class="form-group" style="margin-top:20px;">
+      <button class="btn-secondary" id="export-btn" style="margin-top:0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Shifrlangan zaxira nusxa yaratish
+      </button>
+      <button class="btn-secondary" id="import-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        Zaxiradan tiklash
+      </button>
+      <input type="file" id="import-file-input" accept=".json" style="display:none;">
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT PASSWORD PROMPT -->
+<div class="sheet-overlay" id="export-pw-overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header"><h2>Zaxira uchun parol</h2></div>
+    <p style="font-size:13px; color:var(--text-low); line-height:1.6; margin-top:-8px;">Bu fayl bosh parolingizdan <strong>mustaqil</strong> alohida parol bilan shifrlanadi. Faylni boshqa joyga (Google Drive, kompyuter) saqlashingiz mumkin — u baribir shifrlangan bo'ladi.</p>
+    <div class="form-group">
+      <label>Zaxira paroli</label>
+      <div class="form-input-row"><input type="password" id="export-pw-input" placeholder="Kamida 8ta belgi"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-danger" id="export-pw-cancel">Bekor qilish</button>
+      <button class="btn-save" id="export-pw-confirm">Yaratish</button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet-overlay" id="import-pw-overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header"><h2>Zaxira parolini kiriting</h2></div>
+    <div class="form-group">
+      <label>Zaxira paroli</label>
+      <div class="form-input-row"><input type="password" id="import-pw-input" placeholder="Fayl yaratilganda kiritgan parol"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-danger" id="import-pw-cancel">Bekor qilish</button>
+      <button class="btn-save" id="import-pw-confirm">Tiklash</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span id="toast-text">Saqlandi</span></div>
+
+<script>
+(function(){
+  'use strict';
+
+  const DB_META_KEY = 'vault_meta_v1';
+  const DB_DATA_KEY = 'vault_data_v1';
+  const SETTINGS_KEY = 'vault_settings_v1';
+
+  let masterKey = null;
+  let entries = [];
+  let editingId = null;
+  let pendingImportPayload = null;
+  let autoLockTimer = null;
+
+  const enc = new TextEncoder();
+  const dec = new TextDecoder();
+
+  function toB64(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))); }
+  function fromB64(b64){ return Uint8Array.from(atob(b64), c => c.charCodeAt(0)); }
+  function randomBytes(len){ return crypto.getRandomValues(new Uint8Array(len)); }
+  function uuid(){ return crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2); }
+
+  async function deriveKey(password, saltBytes, iterations){
+    const baseKey = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey(
+      { name:'PBKDF2', salt: saltBytes, iterations: iterations || 250000, hash:'SHA-256' },
+      baseKey, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']
+    );
+  }
+  async function encryptJSON(key, obj){
+    const iv = randomBytes(12);
+    const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, enc.encode(JSON.stringify(obj)));
+    return { iv: toB64(iv), ct: toB64(ct) };
+  }
+  async function decryptJSON(key, ivB64, ctB64){
+    const plainBuf = await crypto.subtle.decrypt({name:'AES-GCM', iv:fromB64(ivB64)}, key, fromB64(ctB64));
+    return JSON.parse(dec.decode(plainBuf));
+  }
+
+  function getMeta(){ const r = localStorage.getItem(DB_META_KEY); return r ? JSON.parse(r) : null; }
+  function setMeta(m){ localStorage.setItem(DB_META_KEY, JSON.stringify(m)); }
+  function getDataBlob(){ const r = localStorage.getItem(DB_DATA_KEY); return r ? JSON.parse(r) : null; }
+  function setDataBlob(b){ localStorage.setItem(DB_DATA_KEY, JSON.stringify(b)); }
+  function getSettings(){ const r = localStorage.getItem(SETTINGS_KEY); return r ? JSON.parse(r) : { biometric:false, autolock:true }; }
+  function setSettings(s){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
+
+  async function persistEntries(){
+    const blob = await encryptJSON(masterKey, entries);
+    setDataBlob(blob);
+  }
+
+  // ===================== DOM =====================
+  const lockScreen = document.getElementById('lock-screen');
+  const vaultScreen = document.getElementById('vault-screen');
+  const screenTitle = document.getElementById('screen-title');
+  const screenSub = document.getElementById('screen-sub');
+  const fieldLabel1 = document.getElementById('field-label-1');
+  const masterInput = document.getElementById('master-input');
+  const masterConfirmInput = document.getElementById('master-confirm-input');
+  const confirmWrap = document.getElementById('confirm-wrap');
+  const unlockBtn = document.getElementById('unlock-btn');
+  const biometricBtn = document.getElementById('biometric-btn');
+  const errorLine = document.getElementById('error-line');
+  const hintLine = document.getElementById('hint-line');
+  const dialIcon = document.getElementById('dial-icon');
+  const strengthBar = document.getElementById('strength-bar');
+  const toggleMasterVis = document.getElementById('toggle-master-vis');
+
+  const entryList = document.getElementById('entry-list');
+  const entryCount = document.getElementById('entry-count');
+  const searchInput = document.getElementById('search-input');
+  const addFab = document.getElementById('add-fab');
+  const lockNowBtn = document.getElementById('lock-now-btn');
+  const settingsBtn = document.getElementById('settings-btn');
+
+  const sheetOverlay = document.getElementById('entry-sheet-overlay');
+  const sheetTitle = document.getElementById('sheet-title');
+  const sheetCloseBtn = document.getElementById('sheet-close-btn');
+  const entryNameInput = document.getElementById('entry-name');
+  const entryLoginInput = document.getElementById('entry-login');
+  const entryPasswordInput = document.getElementById('entry-password');
+  const toggleEntryPassVis = document.getElementById('toggle-entry-pass-vis');
+  const genPassBtn = document.getElementById('gen-pass-btn');
+  const copyPassBtn = document.getElementById('copy-pass-btn');
+  const saveEntryBtn = document.getElementById('save-entry-btn');
+  const deleteEntryBtn = document.getElementById('delete-entry-btn');
+
+  const settingsOverlay = document.getElementById('settings-sheet-overlay');
+  const settingsCloseBtn = document.getElementById('settings-close-btn');
+  const biometricToggle = document.getElementById('biometric-toggle');
+  const autolockToggle = document.getElementById('autolock-toggle');
+  const exportBtn = document.getElementById('export-btn');
+  const importBtn = document.getElementById('import-btn');
+  const importFileInput = document.getElementById('import-file-input');
+
+  const exportPwOverlay = document.getElementById('export-pw-overlay');
+  const exportPwInput = document.getElementById('export-pw-input');
+  const exportPwCancel = document.getElementById('export-pw-cancel');
+  const exportPwConfirm = document.getElementById('export-pw-confirm');
+
+  const importPwOverlay = document.getElementById('import-pw-overlay');
+  const importPwInput = document.getElementById('import-pw-input');
+  const importPwCancel = document.getElementById('import-pw-cancel');
+  const importPwConfirm = document.getElementById('import-pw-confirm');
+
+  const toast = document.getElementById('toast');
+  const toastText = document.getElementById('toast-text');
+
+  let toastTimer = null;
+  function showToast(msg){
+    toastText.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> toast.classList.remove('show'), 1800);
+  }
+
+  // ===================== NATIVE BRIDGE (Capacitor / Android WebView) =====================
+  // Bu funksiyalar native Android kodi bilan bog'lanadi (agar mavjud bo'lsa).
+  // Brauzerda ishlaganda avtomatik ravishda "yo'q" holatga qaytadi, xato bermaydi.
+  const Native = {
+    hasBiometric: () => !!(window.AndroidBridge && window.AndroidBridge.isBiometricAvailable && window.AndroidBridge.isBiometricAvailable()),
+    authenticateBiometric: () => new Promise((resolve) => {
+      if(window.AndroidBridge && window.AndroidBridge.authenticateBiometric){
+        window.biometricAuthCallback = (success) => { resolve(success); };
+        window.AndroidBridge.authenticateBiometric();
+      } else {
+        resolve(false);
+      }
+    }),
+    saveKeyToKeystore: (rawKeyB64) => {
+      if(window.AndroidBridge && window.AndroidBridge.saveEncryptionKey){
+        window.AndroidBridge.saveEncryptionKey(rawKeyB64);
+      }
+    },
+    getKeyFromKeystore: () => new Promise((resolve) => {
+      if(window.AndroidBridge && window.AndroidBridge.getEncryptionKey){
+        window.keyRetrievalCallback = (keyB64) => resolve(keyB64);
+        window.AndroidBridge.getEncryptionKey();
+      } else {
+        resolve(null);
+      }
+    }),
+    copyToClipboardSecure: (text) => {
+      if(window.AndroidBridge && window.AndroidBridge.copyToClipboard){
+        window.AndroidBridge.copyToClipboard(text);
+        return true;
+      }
+      return false;
+    },
+    notifyEntriesChanged: (entriesJson) => {
+      // Autofill xizmatiga yangi ma'lumotlar borligini bildiradi
+      if(window.AndroidBridge && window.AndroidBridge.syncAutofillData){
+        window.AndroidBridge.syncAutofillData(entriesJson);
+      }
+    }
+  };
+
+  // ===================== SETUP vs UNLOCK =====================
+  const isFirstRun = !getMeta();
+  let settings = getSettings();
+
+  function renderLockScreenMode(){
+    if(isFirstRun){
+      screenTitle.textContent = 'Xazina yaratish';
+      screenSub.textContent = 'Bosh parol o\u2018ylab toping. Uni faqat siz bilasiz — uni unutsangiz, maʼlumotlarni tiklab bo\u2018lmaydi.';
+      fieldLabel1.textContent = 'Yangi bosh parol';
+      confirmWrap.style.display = 'block';
+      strengthBar.style.display = 'flex';
+      unlockBtn.textContent = 'Xazina yaratish';
+      hintLine.textContent = 'Kamida 8ta belgi. Harflar, raqam va belgilarni aralashtiring.';
+      biometricBtn.style.display = 'none';
+    } else {
+      screenTitle.textContent = 'Maxfiy Xazina';
+      screenSub.textContent = 'Davom etish uchun bosh parolingizni kiriting.';
+      fieldLabel1.textContent = 'Bosh parol';
+      confirmWrap.style.display = 'none';
+      strengthBar.style.display = 'none';
+      unlockBtn.textContent = 'Ochish';
+      hintLine.textContent = '';
+      biometricBtn.style.display = (settings.biometric && Native.hasBiometric()) ? 'flex' : 'none';
+    }
+  }
+  renderLockScreenMode();
+
+  function passwordStrengthScore(pw){
+    let score = 0;
+    if(pw.length >= 8) score++;
+    if(pw.length >= 12) score++;
+    if(/[0-9]/.test(pw) && /[a-zA-Z]/.test(pw)) score++;
+    if(/[^a-zA-Z0-9]/.test(pw)) score++;
+    return score;
+  }
+  masterInput.addEventListener('input', ()=>{
+    if(!isFirstRun) return;
+    const segs = strengthBar.querySelectorAll('.strength-seg');
+    const score = passwordStrengthScore(masterInput.value);
+    segs.forEach((s,i)=>{ s.className = 'strength-seg'; if(i < score){ s.classList.add(score <= 1 ? 'on-weak' : score <= 3 ? 'on-mid' : 'on-strong'); } });
+  });
+
+  toggleMasterVis.addEventListener('click', ()=>{
+    const isPass = masterInput.type === 'password';
+    masterInput.type = isPass ? 'text' : 'password';
+    masterConfirmInput.type = isPass ? 'text' : 'password';
+  });
+
+  function shakeDial(){ dialIcon.classList.remove('shake'); void dialIcon.offsetWidth; dialIcon.classList.add('shake'); }
+
+  async function handleUnlockOrSetup(){
+    errorLine.textContent = '';
+    const pw = masterInput.value;
+
+    if(isFirstRun){
+      const confirmPw = masterConfirmInput.value;
+      if(pw.length < 8){ errorLine.textContent = 'Bosh parol kamida 8ta belgidan iborat bo\u2018lishi kerak.'; shakeDial(); return; }
+      if(pw !== confirmPw){ errorLine.textContent = 'Parollar mos kelmadi.'; shakeDial(); return; }
+      unlockBtn.disabled = true; unlockBtn.textContent = 'Yaratilmoqda...';
+
+      const salt = randomBytes(16);
+      const key = await deriveKey(pw, salt);
+      const verifier = await encryptJSON(key, { check: 'vault-ok' });
+      setMeta({ salt: toB64(salt), verifierIv: verifier.iv, verifierCt: verifier.ct, iterations: 250000 });
+
+      masterKey = key;
+      entries = [];
+      await persistEntries();
+      enterVault();
+    } else {
+      unlockBtn.disabled = true; unlockBtn.textContent = 'Tekshirilmoqda...';
+      const meta = getMeta();
+      const salt = fromB64(meta.salt);
+      const key = await deriveKey(pw, salt, meta.iterations);
+
+      try {
+        const check = await decryptJSON(key, meta.verifierIv, meta.verifierCt);
+        if(check.check !== 'vault-ok') throw new Error('bad');
+      } catch(e){
+        errorLine.textContent = 'Bosh parol noto\u2018g\u2018ri.'; shakeDial();
+        unlockBtn.disabled = false; unlockBtn.textContent = 'Ochish'; masterInput.value = '';
+        return;
+      }
+
+      masterKey = key;
+      const blob = getDataBlob();
+      try { entries = blob ? await decryptJSON(key, blob.iv, blob.ct) : []; } catch(e){ entries = []; }
+      enterVault();
+    }
+  }
+
+  unlockBtn.addEventListener('click', handleUnlockOrSetup);
+  masterInput.addEventListener('keydown', e => { if(e.key === 'Enter') handleUnlockOrSetup(); });
+  masterConfirmInput.addEventListener('keydown', e => { if(e.key === 'Enter') handleUnlockOrSetup(); });
+
+  biometricBtn.addEventListener('click', async () => {
+    const ok = await Native.authenticateBiometric();
+    if(!ok){ showToast('Barmoq izi tasdiqlanmadi'); return; }
+    const rawKeyB64 = await Native.getKeyFromKeystore();
+    if(!rawKeyB64){ showToast('Xatolik: kalit topilmadi. Bosh parol bilan kiring.'); return; }
+    try {
+      const rawKey = fromB64(rawKeyB64);
+      masterKey = await crypto.subtle.importKey('raw', rawKey, {name:'AES-GCM'}, false, ['encrypt','decrypt']);
+      const blob = getDataBlob();
+      entries = blob ? await decryptJSON(masterKey, blob.iv, blob.ct) : [];
+      enterVault();
+    } catch(e){
+      showToast('Xatolik yuz berdi. Bosh parol bilan kiring.');
+    }
+  });
+
+  // ===================== VAULT SCREEN =====================
+  function enterVault(){
+    lockScreen.style.display = 'none';
+    vaultScreen.style.display = 'flex';
+    masterInput.value = ''; masterConfirmInput.value = '';
+    unlockBtn.disabled = false;
+    renderEntries();
+    resetAutoLockTimer();
+
+    // Agar biometrika yoqilgan bo'lsa va kalit hali saqlanmagan bo'lsa, saqlaymiz
+    if(settings.biometric && Native.hasBiometric()){
+      crypto.subtle.exportKey('raw', masterKey).then(raw => {
+        Native.saveKeyToKeystore(toB64(raw));
+      }).catch(()=>{});
+    }
+  }
+
+  function lockVault(){
+    masterKey = null; entries = []; editingId = null;
+    clearTimeout(autoLockTimer);
+    vaultScreen.style.display = 'none';
+    lockScreen.style.display = 'flex';
+    errorLine.textContent = '';
+    location.reload();
+  }
+  lockNowBtn.addEventListener('click', lockVault);
+
+  function resetAutoLockTimer(){
+    clearTimeout(autoLockTimer);
+    if(!settings.autolock) return;
+    autoLockTimer = setTimeout(() => { showToast('Faolsizlik tufayli qulflandi'); setTimeout(lockVault, 600); }, 30000);
+  }
+  ['click','touchstart','keydown','input'].forEach(evt => {
+    document.addEventListener(evt, () => { if(masterKey) resetAutoLockTimer(); }, {passive:true});
+  });
+  document.addEventListener('visibilitychange', () => {
+    if(document.hidden && masterKey && settings.autolock){
+      // Ilova fondan chiqqanda darhol qulflaymiz (autofill sahnasi bundan mustasno bo'lishi mumkin, native tomondan boshqariladi)
+    }
+  });
+
+  function initials(name){
+    const parts = name.trim().split(/\s+/);
+    if(parts.length === 1) return parts[0].slice(0,2).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+
+  function renderEntries(){
+    const query = searchInput.value.trim().toLowerCase();
+    const filtered = entries.filter(e => !query || e.name.toLowerCase().includes(query) || e.login.toLowerCase().includes(query)).sort((a,b) => a.name.localeCompare(b.name));
+    entryCount.textContent = entries.length + ' ta yozuv';
+    entryList.innerHTML = '';
+    if(filtered.length === 0){
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg><p>${entries.length === 0 ? 'Hali yozuvlar yo\u2018q. Pastdagi + tugmasi orqali birinchi parolingizni qo\u2018shing.' : 'Hech narsa topilmadi.'}</p>`;
+      entryList.appendChild(empty);
+      return;
+    }
+    filtered.forEach(e => {
+      const card = document.createElement('div');
+      card.className = 'entry-card';
+      card.innerHTML = `<div class="entry-avatar">${initials(e.name)}</div><div class="entry-info"><div class="entry-name"></div><div class="entry-login"></div></div><svg class="entry-chevron" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
+      card.querySelector('.entry-name').textContent = e.name;
+      card.querySelector('.entry-login').textContent = e.login || '\u2014';
+      card.addEventListener('click', () => openSheet(e.id));
+      entryList.appendChild(card);
+    });
+  }
+  searchInput.addEventListener('input', renderEntries);
+
+  // ===================== ADD/EDIT SHEET =====================
+  function openSheet(id){
+    editingId = id || null;
+    if(id){
+      const e = entries.find(x => x.id === id);
+      sheetTitle.textContent = 'Yozuvni tahrirlash';
+      entryNameInput.value = e.name; entryLoginInput.value = e.login; entryPasswordInput.value = e.password;
+      deleteEntryBtn.style.display = 'block';
+    } else {
+      sheetTitle.textContent = 'Yangi yozuv';
+      entryNameInput.value = ''; entryLoginInput.value = ''; entryPasswordInput.value = '';
+      deleteEntryBtn.style.display = 'none';
+    }
+    entryPasswordInput.type = 'password';
+    sheetOverlay.classList.add('open');
+  }
+  function closeSheet(){ sheetOverlay.classList.remove('open'); editingId = null; }
+  addFab.addEventListener('click', () => openSheet(null));
+  sheetCloseBtn.addEventListener('click', closeSheet);
+  sheetOverlay.addEventListener('click', (e) => { if(e.target === sheetOverlay) closeSheet(); });
+  toggleEntryPassVis.addEventListener('click', () => { entryPasswordInput.type = entryPasswordInput.type === 'password' ? 'text' : 'password'; });
+
+  function generateStrongPassword(len = 16){
+    const sets = { lower:'abcdefghijkmnopqrstuvwxyz', upper:'ABCDEFGHJKLMNPQRSTUVWXYZ', digits:'23456789', symbols:'!@#$%^&*()-_=+?' };
+    const all = sets.lower + sets.upper + sets.digits + sets.symbols;
+    const bytes = randomBytes(len);
+    let pw = '';
+    const guaranteed = [sets.lower, sets.upper, sets.digits, sets.symbols].map(set => set[randomBytes(1)[0] % set.length]);
+    for(let i = 0; i < len; i++){ pw += all[bytes[i] % all.length]; }
+    const pwArr = pw.split('');
+    guaranteed.forEach((ch, i) => { pwArr[i] = ch; });
+    for(let i = pwArr.length - 1; i > 0; i--){ const j = randomBytes(1)[0] % (i + 1); [pwArr[i], pwArr[j]] = [pwArr[j], pwArr[i]]; }
+    return pwArr.join('');
+  }
+  genPassBtn.addEventListener('click', () => { entryPasswordInput.value = generateStrongPassword(16); entryPasswordInput.type = 'text'; });
+
+  let clipboardClearTimer = null;
+  copyPassBtn.addEventListener('click', async () => {
+    if(!entryPasswordInput.value){ showToast('Avval parol kiriting'); return; }
+    const text = entryPasswordInput.value;
+    const usedNative = Native.copyToClipboardSecure(text);
+    if(!usedNative){
+      try { await navigator.clipboard.writeText(text); } catch(e){ showToast('Nusxalab bo\u2018lmadi'); return; }
+    }
+    showToast('Nusxalandi \u2014 20s dan keyin tozalanadi');
+    clearTimeout(clipboardClearTimer);
+    clipboardClearTimer = setTimeout(async () => {
+      try {
+        const usedNativeClear = Native.copyToClipboardSecure('');
+        if(!usedNativeClear) await navigator.clipboard.writeText('');
+      } catch(e){}
+    }, 20000);
+  });
+
+  saveEntryBtn.addEventListener('click', async () => {
+    const name = entryNameInput.value.trim();
+    const login = entryLoginInput.value.trim();
+    const password = entryPasswordInput.value;
+    if(!name || !password){ showToast('Nomi va parolni kiriting'); return; }
+    if(editingId){
+      const e = entries.find(x => x.id === editingId);
+      e.name = name; e.login = login; e.password = password;
+    } else {
+      entries.push({ id: uuid(), name, login, password, createdAt: Date.now() });
+    }
+    await persistEntries();
+    renderEntries();
+    closeSheet();
+    showToast('Saqlandi');
+    Native.notifyEntriesChanged(JSON.stringify(entries.map(e => ({id:e.id, name:e.name, login:e.login, password:e.password}))));
+  });
+
+  deleteEntryBtn.addEventListener('click', async () => {
+    if(!editingId) return;
+    entries = entries.filter(x => x.id !== editingId);
+    await persistEntries();
+    renderEntries();
+    closeSheet();
+    showToast('O\u2018chirildi');
+    Native.notifyEntriesChanged(JSON.stringify(entries.map(e => ({id:e.id, name:e.name, login:e.login, password:e.password}))));
+  });
+
+  // ===================== SETTINGS =====================
+  function renderSettingsToggles(){
+    biometricToggle.classList.toggle('on', settings.biometric && Native.hasBiometric());
+    autolockToggle.classList.toggle('on', settings.autolock);
+    if(!Native.hasBiometric()){
+      biometricToggle.style.opacity = '0.4';
+    }
+  }
+  settingsBtn.addEventListener('click', () => { renderSettingsToggles(); settingsOverlay.classList.add('open'); });
+  settingsCloseBtn.addEventListener('click', () => settingsOverlay.classList.remove('open'));
+  settingsOverlay.addEventListener('click', (e) => { if(e.target === settingsOverlay) settingsOverlay.classList.remove('open'); });
+
+  biometricToggle.addEventListener('click', async () => {
+    if(!Native.hasBiometric()){ showToast('Bu qurilmada barmoq izi mavjud emas'); return; }
+    settings.biometric = !settings.biometric;
+    setSettings(settings);
+    renderSettingsToggles();
+    if(settings.biometric && masterKey){
+      const raw = await crypto.subtle.exportKey('raw', masterKey);
+      Native.saveKeyToKeystore(toB64(raw));
+      showToast('Barmoq izi yoqildi');
+    } else {
+      showToast('Barmoq izi o\u2018chirildi');
+    }
+  });
+  autolockToggle.addEventListener('click', () => {
+    settings.autolock = !settings.autolock;
+    setSettings(settings);
+    renderSettingsToggles();
+    resetAutoLockTimer();
+  });
+
+  // ===================== EXPORT / IMPORT =====================
+  exportBtn.addEventListener('click', () => { settingsOverlay.classList.remove('open'); exportPwOverlay.classList.add('open'); exportPwInput.value=''; });
+  exportPwCancel.addEventListener('click', () => exportPwOverlay.classList.remove('open'));
+  exportPwOverlay.addEventListener('click', (e) => { if(e.target === exportPwOverlay) exportPwOverlay.classList.remove('open'); });
+
+  exportPwConfirm.addEventListener('click', async () => {
+    const pw = exportPwInput.value;
+    if(pw.length < 8){ showToast('Kamida 8ta belgi kerak'); return; }
+    exportPwConfirm.disabled = true; exportPwConfirm.textContent = 'Tayyorlanmoqda...';
+
+    const salt = randomBytes(16);
+    const key = await deriveKey(pw, salt, 250000);
+    const payload = await encryptJSON(key, { entries, exportedAt: Date.now() });
+    const fileObj = { format: 'maxfiy-xazina-backup-v1', salt: toB64(salt), iterations: 250000, iv: payload.iv, ct: payload.ct };
+
+    const blob = new Blob([JSON.stringify(fileObj, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0,10);
+    a.href = url; a.download = `xazina-zaxira-${dateStr}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    exportPwConfirm.disabled = false; exportPwConfirm.textContent = 'Yaratish';
+    exportPwOverlay.classList.remove('open');
+    showToast('Zaxira fayli yaratildi');
+  });
+
+  importBtn.addEventListener('click', () => { settingsOverlay.classList.remove('open'); importFileInput.click(); });
+  importFileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if(parsed.format !== 'maxfiy-xazina-backup-v1') throw new Error('format');
+      pendingImportPayload = parsed;
+      importPwInput.value = '';
+      importPwOverlay.classList.add('open');
+    } catch(err){
+      showToast('Bu fayl noto\u2018g\u2018ri yoki buzilgan');
+    }
+    importFileInput.value = '';
+  });
+  importPwCancel.addEventListener('click', () => importPwOverlay.classList.remove('open'));
+  importPwOverlay.addEventListener('click', (e) => { if(e.target === importPwOverlay) importPwOverlay.classList.remove('open'); });
+
+  importPwConfirm.addEventListener('click', async () => {
+    const pw = importPwInput.value;
+    if(!pendingImportPayload || !pw){ return; }
+    importPwConfirm.disabled = true; importPwConfirm.textContent = 'Tiklanmoqda...';
+    try {
+      const salt = fromB64(pendingImportPayload.salt);
+      const key = await deriveKey(pw, salt, pendingImportPayload.iterations || 250000);
+      const data = await decryptJSON(key, pendingImportPayload.iv, pendingImportPayload.ct);
+      const importedEntries = data.entries || [];
+
+      // Mavjud yozuvlar bilan birlashtirish (ID bo'yicha dublikatlarni oldini olish)
+      const existingIds = new Set(entries.map(e => e.id));
+      let addedCount = 0;
+      importedEntries.forEach(e => {
+        if(!existingIds.has(e.id)){ entries.push(e); addedCount++; }
+      });
+      await persistEntries();
+      renderEntries();
+      importPwOverlay.classList.remove('open');
+      showToast(`${addedCount} ta yozuv tiklandi`);
+      Native.notifyEntriesChanged(JSON.stringify(entries.map(e => ({id:e.id, name:e.name, login:e.login, password:e.password}))));
+    } catch(err){
+      showToast('Parol noto\u2018g\u2018ri yoki fayl buzilgan');
+    }
+    importPwConfirm.disabled = false; importPwConfirm.textContent = 'Tiklash';
+  });
+
+})();
+</script>
+</body>
+</html>
