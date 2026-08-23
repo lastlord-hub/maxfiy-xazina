@@ -14,26 +14,62 @@ jobs:
           java-version: '17'
       - run: npm install
       - run: npx cap add android
-      - name: Native kodni kochirish
+
+      - name: Capacitor standart MainActivity faylini tekshirish va ochirish
+        run: |
+          echo "Capacitor java papkasi tarkibi:"
+          find android/app/src/main/java -type f
+          find android/app/src/main/java -name "MainActivity.java" -delete
+          echo "Ochirilgandan keyin:"
+          find android/app/src/main/java -type f
+
+      - name: Bizning Kotlin fayllarimizni kochirish
         run: |
           mkdir -p android/app/src/main/java/com/maxfiyxazina/app
           cp android-native/app/src/main/java/com/maxfiyxazina/app/*.kt android/app/src/main/java/com/maxfiyxazina/app/
+          echo "Nusxalangandan keyin:"
+          find android/app/src/main/java -type f
+
+      - name: AndroidManifest ni birlashtirish
+        run: |
+          echo "Capacitor generatsiya qilgan manifest:"
+          cat android/app/src/main/AndroidManifest.xml
           cp android-native/app/src/main/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           mkdir -p android/app/src/main/res/xml
           cp -f android-native/app/src/main/res/xml/*.xml android/app/src/main/res/xml/
-      - name: Biometric kutubxonasini qoshish
+
+      - name: Kotlin plugin va biometric kutubxonasini qoshish
         run: |
-          if ! grep -q "androidx.biometric" android/app/build.gradle; then
-            sed -i '/dependencies {/a\    implementation "androidx.biometric:biometric:1.2.0-alpha05"' android/app/build.gradle
+          if ! grep -q "kotlin-android" android/app/build.gradle; then
+            sed -i "1i apply plugin: 'kotlin-android'" android/app/build.gradle
           fi
+          if ! grep -q "androidx.biometric" android/app/build.gradle; then
+            sed -i '/dependencies {/a\    implementation "androidx.biometric:biometric:1.2.0-alpha05"\n    implementation "androidx.core:core-ktx:1.13.1"' android/app/build.gradle
+          fi
+          if ! grep -q "kotlin-gradle-plugin" android/build.gradle; then
+            sed -i "/classpath 'com.android.tools.build:gradle/a\\        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24'" android/build.gradle
+          fi
+          echo "----- app/build.gradle -----"
+          cat android/app/build.gradle
+          echo "----- build.gradle -----"
+          cat android/build.gradle
+
+      - name: minSdkVersion ni 26 ga oshirish (Autofill uchun shart)
+        run: |
+          sed -i 's/minSdkVersion [0-9]*/minSdkVersion 26/' android/variables.gradle || true
+          cat android/variables.gradle
+
       - name: Capacitor sync
         run: npx cap sync android
+
       - name: Gradle ruxsat
         run: chmod +x android/gradlew
+
       - name: APK yasash
         run: |
           cd android
           ./gradlew assembleDebug --stacktrace
+
       - name: APK saqlash
         uses: actions/upload-artifact@v4
         with:
