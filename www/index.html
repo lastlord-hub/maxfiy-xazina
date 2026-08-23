@@ -66,7 +66,16 @@
   .topbar-actions{display:flex; gap:8px;}
   .icon-sq-btn{background:var(--bg-panel); border:1px solid var(--line); color:var(--text-mid); width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center;}
   .icon-sq-btn svg{width:18px; height:18px; stroke:currentColor;}
+  .tab-row{display:flex; gap:8px; padding:0 20px 14px 20px;}
+  .tab-btn{flex:1; background:var(--bg-panel); border:1px solid var(--line-soft); color:var(--text-mid); padding:11px; border-radius:10px; font-size:13.5px; font-weight:600; font-family:var(--sans);}
+  .tab-btn.active{background:var(--emerald); color:#06110c; border-color:var(--emerald);}
   .search-wrap{padding:0 20px 14px 20px;}
+  .note-card{background:var(--bg-panel); border:1px solid var(--line-soft); border-radius:12px; padding:14px 16px; margin-bottom:10px; cursor:pointer;}
+  .note-card:active{background:var(--bg-panel-2);}
+  .note-title{font-size:15px; font-weight:600; color:var(--text-hi); margin-bottom:4px;}
+  .note-preview{font-size:13px; color:var(--text-low); overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;}
+  .note-textarea{width:100%; min-height:220px; background:var(--bg-panel-2); border:1px solid var(--line); border-radius:10px; color:var(--text-hi); font-size:14.5px; font-family:var(--sans); padding:14px; resize:vertical; outline:none;}
+  .note-textarea:focus{border-color:var(--emerald-dim);}
   .search-row{display:flex; align-items:center; gap:10px; background:var(--bg-panel); border:1px solid var(--line-soft); border-radius:10px; padding:11px 14px;}
   .search-row svg{width:16px; height:16px; stroke:var(--text-low); flex-shrink:0;}
   .search-row input{background:transparent; border:none; outline:none; color:var(--text-hi); font-size:14.5px; flex:1; font-family:var(--sans);}
@@ -178,6 +187,11 @@
       </div>
     </div>
 
+    <div class="tab-row">
+      <button class="tab-btn active" id="tab-passwords" data-tab="passwords">🔑 Parollar</button>
+      <button class="tab-btn" id="tab-notes" data-tab="notes">📝 Matnlar</button>
+    </div>
+
     <div class="search-wrap">
       <div class="search-row">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
@@ -186,6 +200,7 @@
     </div>
 
     <div id="entry-list"></div>
+    <div id="note-list" style="display:none;"></div>
 
     <button class="fab" id="add-fab">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -225,6 +240,29 @@
     <div class="btn-row">
       <button class="btn-danger" id="delete-entry-btn" style="display:none;">O'chirish</button>
       <button class="btn-save" id="save-entry-btn">Saqlash</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTE ADD/EDIT SHEET -->
+<div class="sheet-overlay" id="note-sheet-overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2 id="note-sheet-title">Yangi matn</h2>
+      <button class="sheet-close" id="note-sheet-close-btn"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    </div>
+    <div class="form-group">
+      <label>Sarlavha</label>
+      <div class="form-input-row"><input type="text" id="note-title-input" placeholder="Masalan: Wi-Fi parollari"></div>
+    </div>
+    <div class="form-group">
+      <label>Matn</label>
+      <textarea class="note-textarea" id="note-content-input" placeholder="Bu yerga istalgan matnni yozing..."></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn-danger" id="delete-note-btn" style="display:none;">O'chirish</button>
+      <button class="btn-save" id="save-note-btn">Saqlash</button>
     </div>
   </div>
 </div>
@@ -311,7 +349,10 @@
 
   let masterKey = null;
   let entries = [];
+  let notes = [];
   let editingId = null;
+  let editingNoteId = null;
+  let activeTab = 'passwords';
   let pendingImportPayload = null;
   let autoLockTimer = null;
 
@@ -348,7 +389,7 @@
   function setSettings(s){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
 
   async function persistEntries(){
-    const blob = await encryptJSON(masterKey, entries);
+    const blob = await encryptJSON(masterKey, { entries, notes });
     setDataBlob(blob);
   }
 
@@ -370,11 +411,22 @@
   const toggleMasterVis = document.getElementById('toggle-master-vis');
 
   const entryList = document.getElementById('entry-list');
+  const noteList = document.getElementById('note-list');
   const entryCount = document.getElementById('entry-count');
   const searchInput = document.getElementById('search-input');
   const addFab = document.getElementById('add-fab');
   const lockNowBtn = document.getElementById('lock-now-btn');
   const settingsBtn = document.getElementById('settings-btn');
+  const tabPasswords = document.getElementById('tab-passwords');
+  const tabNotes = document.getElementById('tab-notes');
+
+  const noteSheetOverlay = document.getElementById('note-sheet-overlay');
+  const noteSheetTitle = document.getElementById('note-sheet-title');
+  const noteSheetCloseBtn = document.getElementById('note-sheet-close-btn');
+  const noteTitleInput = document.getElementById('note-title-input');
+  const noteContentInput = document.getElementById('note-content-input');
+  const saveNoteBtn = document.getElementById('save-note-btn');
+  const deleteNoteBtn = document.getElementById('delete-note-btn');
 
   const sheetOverlay = document.getElementById('entry-sheet-overlay');
   const sheetTitle = document.getElementById('sheet-title');
@@ -455,6 +507,12 @@
       if(window.AndroidBridge && window.AndroidBridge.syncAutofillData){
         window.AndroidBridge.syncAutofillData(entriesJson);
       }
+    },
+    saveFileToDownloads: (fileName, content) => {
+      if(window.AndroidBridge && window.AndroidBridge.saveFileToDownloads){
+        return window.AndroidBridge.saveFileToDownloads(fileName, content);
+      }
+      return false;
     }
   };
 
@@ -525,6 +583,7 @@
 
       masterKey = key;
       entries = [];
+      notes = [];
       await persistEntries();
       enterVault();
     } else {
@@ -544,8 +603,22 @@
 
       masterKey = key;
       const blob = getDataBlob();
-      try { entries = blob ? await decryptJSON(key, blob.iv, blob.ct) : []; } catch(e){ entries = []; }
+      try {
+        const data = blob ? await decryptJSON(key, blob.iv, blob.ct) : { entries: [], notes: [] };
+        loadDecryptedData(data);
+      } catch(e){ entries = []; notes = []; }
       enterVault();
+    }
+  }
+
+  // Eski formatdagi ma'lumot (faqat massiv) bilan yangi format ({entries, notes}) orasida moslik
+  function loadDecryptedData(data){
+    if(Array.isArray(data)){
+      entries = data;
+      notes = [];
+    } else {
+      entries = data.entries || [];
+      notes = data.notes || [];
     }
   }
 
@@ -562,7 +635,8 @@
       const rawKey = fromB64(rawKeyB64);
       masterKey = await crypto.subtle.importKey('raw', rawKey, {name:'AES-GCM'}, false, ['encrypt','decrypt']);
       const blob = getDataBlob();
-      entries = blob ? await decryptJSON(masterKey, blob.iv, blob.ct) : [];
+      const data = blob ? await decryptJSON(masterKey, blob.iv, blob.ct) : { entries: [], notes: [] };
+      loadDecryptedData(data);
       enterVault();
     } catch(e){
       showToast('Xatolik yuz berdi. Bosh parol bilan kiring.');
@@ -638,7 +712,87 @@
       entryList.appendChild(card);
     });
   }
-  searchInput.addEventListener('input', renderEntries);
+  searchInput.addEventListener('input', () => { activeTab === 'passwords' ? renderEntries() : renderNotes(); });
+
+  // ===================== TABS =====================
+  function switchTab(tab){
+    activeTab = tab;
+    tabPasswords.classList.toggle('active', tab === 'passwords');
+    tabNotes.classList.toggle('active', tab === 'notes');
+    entryList.style.display = tab === 'passwords' ? 'block' : 'none';
+    noteList.style.display = tab === 'notes' ? 'block' : 'none';
+    searchInput.placeholder = tab === 'passwords' ? 'Qidirish...' : 'Matnlarni qidirish...';
+    if(tab === 'passwords') renderEntries(); else renderNotes();
+  }
+  tabPasswords.addEventListener('click', () => switchTab('passwords'));
+  tabNotes.addEventListener('click', () => switchTab('notes'));
+
+  // ===================== NOTES =====================
+  function renderNotes(){
+    const query = searchInput.value.trim().toLowerCase();
+    const filtered = notes.filter(n => !query || n.title.toLowerCase().includes(query) || n.content.toLowerCase().includes(query)).sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));
+    entryCount.textContent = notes.length + ' ta matn';
+    noteList.innerHTML = '';
+    if(filtered.length === 0){
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg><p>${notes.length === 0 ? 'Hali matnlar yo\u2018q. Pastdagi + tugmasi orqali birinchi yozuvingizni qo\u2018shing.' : 'Hech narsa topilmadi.'}</p>`;
+      noteList.appendChild(empty);
+      return;
+    }
+    filtered.forEach(n => {
+      const card = document.createElement('div');
+      card.className = 'note-card';
+      card.innerHTML = `<div class="note-title"></div><div class="note-preview"></div>`;
+      card.querySelector('.note-title').textContent = n.title || '(Sarlavhasiz)';
+      card.querySelector('.note-preview').textContent = n.content;
+      card.addEventListener('click', () => openNoteSheet(n.id));
+      noteList.appendChild(card);
+    });
+  }
+
+  function openNoteSheet(id){
+    editingNoteId = id || null;
+    if(id){
+      const n = notes.find(x => x.id === id);
+      noteSheetTitle.textContent = 'Matnni tahrirlash';
+      noteTitleInput.value = n.title; noteContentInput.value = n.content;
+      deleteNoteBtn.style.display = 'block';
+    } else {
+      noteSheetTitle.textContent = 'Yangi matn';
+      noteTitleInput.value = ''; noteContentInput.value = '';
+      deleteNoteBtn.style.display = 'none';
+    }
+    noteSheetOverlay.classList.add('open');
+  }
+  function closeNoteSheet(){ noteSheetOverlay.classList.remove('open'); editingNoteId = null; }
+  noteSheetCloseBtn.addEventListener('click', closeNoteSheet);
+  noteSheetOverlay.addEventListener('click', (e) => { if(e.target === noteSheetOverlay) closeNoteSheet(); });
+
+  saveNoteBtn.addEventListener('click', async () => {
+    const title = noteTitleInput.value.trim();
+    const content = noteContentInput.value;
+    if(!title && !content){ showToast('Sarlavha yoki matn kiriting'); return; }
+    if(editingNoteId){
+      const n = notes.find(x => x.id === editingNoteId);
+      n.title = title; n.content = content; n.updatedAt = Date.now();
+    } else {
+      notes.push({ id: uuid(), title, content, createdAt: Date.now(), updatedAt: Date.now() });
+    }
+    await persistEntries();
+    renderNotes();
+    closeNoteSheet();
+    showToast('Saqlandi');
+  });
+
+  deleteNoteBtn.addEventListener('click', async () => {
+    if(!editingNoteId) return;
+    notes = notes.filter(x => x.id !== editingNoteId);
+    await persistEntries();
+    renderNotes();
+    closeNoteSheet();
+    showToast('O\u2018chirildi');
+  });
 
   // ===================== ADD/EDIT SHEET =====================
   function openSheet(id){
@@ -657,7 +811,7 @@
     sheetOverlay.classList.add('open');
   }
   function closeSheet(){ sheetOverlay.classList.remove('open'); editingId = null; }
-  addFab.addEventListener('click', () => openSheet(null));
+  addFab.addEventListener('click', () => { activeTab === 'passwords' ? openSheet(null) : openNoteSheet(null); });
   sheetCloseBtn.addEventListener('click', closeSheet);
   sheetOverlay.addEventListener('click', (e) => { if(e.target === sheetOverlay) closeSheet(); });
   toggleEntryPassVis.addEventListener('click', () => { entryPasswordInput.type = entryPasswordInput.type === 'password' ? 'text' : 'password'; });
@@ -766,20 +920,29 @@
 
     const salt = randomBytes(16);
     const key = await deriveKey(pw, salt, 250000);
-    const payload = await encryptJSON(key, { entries, exportedAt: Date.now() });
+    const payload = await encryptJSON(key, { entries, notes, exportedAt: Date.now() });
     const fileObj = { format: 'maxfiy-xazina-backup-v1', salt: toB64(salt), iterations: 250000, iv: payload.iv, ct: payload.ct };
-
-    const blob = new Blob([JSON.stringify(fileObj, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const jsonText = JSON.stringify(fileObj, null, 2);
     const dateStr = new Date().toISOString().slice(0,10);
-    a.href = url; a.download = `xazina-zaxira-${dateStr}.json`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const fileName = `xazina-zaxira-${dateStr}.json`;
+
+    // Avval native (Android) saqlashni sinaymiz - bu "Downloads" papkasiga
+    // aniq, ko'rinadigan tarzda saqlaydi va foydalanuvchiga yo'lni ko'rsatadi.
+    const savedNatively = Native.saveFileToDownloads(fileName, jsonText);
+
+    if(!savedNatively){
+      // Native mavjud bo'lmasa (masalan brauzerda sinalganda), oddiy usul bilan yuklaymiz
+      const blob = new Blob([jsonText], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = fileName;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
 
     exportPwConfirm.disabled = false; exportPwConfirm.textContent = 'Yaratish';
     exportPwOverlay.classList.remove('open');
-    showToast('Zaxira fayli yaratildi');
+    showToast(savedNatively ? `Saqlandi: Yuklamalar/${fileName}` : 'Zaxira fayli yaratildi');
   });
 
   importBtn.addEventListener('click', () => { settingsOverlay.classList.remove('open'); importFileInput.click(); });
@@ -810,6 +973,7 @@
       const key = await deriveKey(pw, salt, pendingImportPayload.iterations || 250000);
       const data = await decryptJSON(key, pendingImportPayload.iv, pendingImportPayload.ct);
       const importedEntries = data.entries || [];
+      const importedNotes = data.notes || [];
 
       // Mavjud yozuvlar bilan birlashtirish (ID bo'yicha dublikatlarni oldini olish)
       const existingIds = new Set(entries.map(e => e.id));
@@ -817,8 +981,13 @@
       importedEntries.forEach(e => {
         if(!existingIds.has(e.id)){ entries.push(e); addedCount++; }
       });
+      const existingNoteIds = new Set(notes.map(n => n.id));
+      importedNotes.forEach(n => {
+        if(!existingNoteIds.has(n.id)){ notes.push(n); addedCount++; }
+      });
       await persistEntries();
       renderEntries();
+      renderNotes();
       importPwOverlay.classList.remove('open');
       showToast(`${addedCount} ta yozuv tiklandi`);
       Native.notifyEntriesChanged(JSON.stringify(entries.map(e => ({id:e.id, name:e.name, login:e.login, password:e.password}))));
